@@ -1,1 +1,1 @@
-# cov-estimation-for-portfolio-optimization
+# covariance-estimation-for-portfolio-optimization
