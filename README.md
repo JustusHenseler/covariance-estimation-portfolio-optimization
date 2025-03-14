@@ -28,6 +28,6 @@ This project accompanies the empirical analysis and simulation for a seminar pro
 - Implements a rolling window approach for genuine out-of-sample performance evaluation of covariance estimators in terms of portfolio optimiziation.
 
 ## Future Enhancements
-- More flexible benchmarks, alternatives to GMV portfolios, such as the full Markowitz portfolio with adjustable return level
+- More flexible benchmarks, i.e. alternatives to GMV portfolios, such as the full Markowitz portfolio with adjustable return level
 - Include more estimators for comparison
 - Allow for more flexible inclusion of different asset return data
