@@ -1,4 +1,4 @@
-source("R/setup.R") # Load necessary files
+source("R/setup.R") # Load necessary packages
 
 source("scripts/get_yahoo_data.R") # Obtain stock returns data from Yahoo! Finance
 
