@@ -49,8 +49,6 @@ po/*~
 rsconnect/
 
 # Folders
-/data/Agrawal_et_al_date_strings.txt
-/data/Agrawal_et_al_invest_indices.csv
 /data/retrievedDataNASDAQ83.RData
 /data/YahooData.RData
 /results/
