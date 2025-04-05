@@ -1,6 +1,5 @@
 # Load Scripts & Packages ####
 source("R/setup.R")
-source("R/convertMatlabDates.R")
 
 library(quantmod)
 library(rvest)
@@ -51,30 +50,11 @@ Vol <- Vol[-1,]
 
 # save(Ret, Adj, Vol, file = "data/retrievedDataNASDAQ83.RData")
 
-load("data/retrievedDataNASDAQ83.RData") 
+load("data/retrievedDataNASDAQ83.RData")
 
-# Import investment dates ####
-orig_dates <- read.csv('data/mydatestr.txt', header = FALSE)
-inv_dates <- read.csv('data/investDateIdx.csv', header = FALSE)
-
-# Replace MATLAB time format ####
-inv_dates_string <- orig_dates[as.vector(inv_dates$"V1"),]
-inv_dates_string <- sapply(inv_dates_string, convertMatlabDates)
-inv_dates_string <- unname(inv_dates_string)
-inv_dates_string <- format(as.Date(inv_dates_string,"%d-%m-%Y"), "%Y-%m-%d")
-
-# Shift old investment dates by ~8 years, i.e. 2001 trading days ####
-for (h in seq_along(inv_dates_string)){
-  inv_dates_string[h] <- rownames(Ret)[which(rownames(Ret) == inv_dates_string[h])+2001]
-}
-
-# Remove first 54 h, since they don't allow to estimate based on a history of 500 complete returns
-inv_dates_string <- inv_dates_string[-c(1:54)]
-
-#######
-
+cutoff_date <- '1998-06-03' # from here there are enough data points for all periods (500+)
 dates <- rownames(Ret)
-dates_inv_periods <- dates[(dates >= as.Date('1998-06-03')) & (dates <= as.Date(dates[length(dates)-21]))]
+dates_inv_periods <- dates[(dates >= as.Date(cutoff_date)) & (dates <= as.Date(dates[length(dates)-21]))]
 inv_dates_string <- dates_inv_periods[seq(1, length(dates_inv_periods), by = 21)]
 
 #######
@@ -139,5 +119,6 @@ inv_dates_rows <- which(rownames(Ret) %in% inv_dates_string)
 
 YahooData <- list(ret = Ret, univ = stockOrder, dates = data.frame(rownames(Ret)), inv_dates = data.frame(inv_dates_rows), vol = Vol)
 save(YahooData, file = "data/YahooData.RData")
+load(file = "data/YahooData.RData")
 
 
