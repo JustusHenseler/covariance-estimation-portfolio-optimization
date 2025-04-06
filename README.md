@@ -6,8 +6,8 @@ This project accompanies the empirical analysis and simulation for a seminar pro
 
 ## Installation
 
-- For the MTP2 estimator of [Slawski & Hein (2015)](https://doi.org/10.1016/j.laa.2014.04.020) to work, the folder "matlab" has to be pasted into the main project folder from [here](https://github.com/uhlerlab/MTP2-finance/).
-- MATLAB license is needed for the MTP2 estimator to work, MATLAB needs to be added to PATH.
+- For the MTP2 estimator of [Slawski & Hein (2015)](https://doi.org/10.1016/j.laa.2014.04.020), the folder "matlab" has to be pasted into the main project folder from [here](https://github.com/uhlerlab/MTP2-finance/).
+- A MATLAB license is needed for the MTP2 estimator to work & MATLAB needs to be added to PATH.
 
 ## Usage
 
