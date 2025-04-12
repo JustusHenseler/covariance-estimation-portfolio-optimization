@@ -130,8 +130,6 @@ inv_dates_string <- dates_inv_periods[seq(1, length(dates_inv_periods), by = inv
 
 #######
 
-period <- '1998-06-03'
-
 get_investment_universe <- function(period) {
   
   valid_tickers <- get_valid_tickers(period)
@@ -181,10 +179,10 @@ get_investment_universe <- function(period) {
   
 }
 
-investment_universes <- list()
+inv_universe_list <- list()
 for(period in inv_dates_string){
-  investment_universes[[period]] <- get_investment_universe(period)$selected
+  inv_universe_list[[period]] <- get_investment_universe(period)$selected
 } 
-save(investment_universes, file = "data/investment_universes.RData")
+save(inv_universe_list, file = "data/inv_universe_list.RData")
 
 

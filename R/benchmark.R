@@ -7,92 +7,81 @@ library(nlshrink)
 library(uuid)
 library(R.utils)
 
-
-benchmark <- function(Past, Future, KendallsTau, inv_dates, estimators, timeout = 300, KT = TRUE) {
+benchmark <- function(returns, inv_universe_list, max_N, max_T, inv_period_length, kendalls_tau_list, estimators, timeout = 300) {
   
-  estimator_names <- names(estimators) #
-  univ_returns <- data.frame(matrix(NA, nrow = length(inv_dates), ncol = length(estimator_names)))
+  estimator_names <- names(estimators)
+  univ_returns <- data.frame(matrix(NA, nrow = length(inv_universe_list), ncol = length(estimator_names)))
+  rownames(univ_returns) <- names(inv_universe_list)
   colnames(univ_returns) <- estimator_names
   
-  for (h in seq_along(inv_dates)) {
+  for (period in names(inv_universe_list)) {
     
-    start_time_h <- Sys.time()
+    start_time_period <- Sys.time()
+    tickers <- inv_universe_list[[period]]
+    tickers <- head(tickers, max_N)
     
-    # Get data for investment period from input
-    Y <- Future[[h]]
-    X <- Past[[h]]
-    Xmeans <- colMeans(X)
-    Skt <- KendallsTau[[h]]
+    period_id <- which(rownames(returns) == period)
+    if (length(period_id) == 0 || period_id - max_T < 1 || period_id + inv_period_length > nrow(returns)) {
+      warning(paste("Skipping period", period, "due to insufficient data."))
+      next
+    }
+    hist_idx <- (period_id - max_T):period_id
+    fcast_idx <- (period_id + 1):(period_id + inv_period_length)
     
-    corr <- cor(X, use='pairwise.complete.obs')
-    high_corr <- which(upper.tri(corr, diag = FALSE) & (abs(corr) > 0.95 | is.na(corr) | (corr == 0)), arr.ind = TRUE) # DF of highly correlated stocks
+    X <- returns[hist_idx, tickers, drop = FALSE]
+    Y <- returns[fcast_idx, tickers, drop = FALSE]
+    Xmeans <- colMeans(X, na.rm = TRUE)
+    Skt <- kendalls_tau_list[[period]]
+    
+    corr <- cor(X, use = 'pairwise.complete.obs')
+    high_corr <- which(upper.tri(corr, diag = FALSE) & (abs(corr) > 0.95 | is.na(corr) | (corr == 0)), arr.ind = TRUE)
     indices_high_corr <- unique(high_corr[,2])
-    ticker_symbols_omitted <- colnames(X)[indices_high_corr]
-    number_omitted <- length(indices_high_corr)
-    N <- dim(X)[2]
     
-    cat("h = ",h,"\n", sep="")
-    
-    if (number_omitted>0){
-      
-      # Update data, exclude highly correlated
-      X <- X[,-indices_high_corr]
-      Xmeans <- colMeans(X)
-      Y <- Y[,-indices_high_corr]
-      Skt <- Skt[-indices_high_corr,-indices_high_corr]
-      N <- dim(X)[2]
-      
-      cat("Omitted ",number_omitted," stocks due to high correlation ","(N=",N,"):","\n", paste(ticker_symbols_omitted, sep = '', collapse = ' '),"\n", sep="")
+    if (length(indices_high_corr) > 0) {
+      omit_tickers <- colnames(X)[indices_high_corr]
+      X <- X[, -indices_high_corr, drop = FALSE]
+      Y <- Y[, -indices_high_corr, drop = FALSE]
+      Xmeans <- colMeans(X, na.rm = TRUE)
+      Skt <- Skt[-indices_high_corr, -indices_high_corr]
+      cat("Omitted ",length(indices_high_corr)," stocks due to high correlation ","(N=",N,"):","\n", paste(ticker_symbols_omitted, sep = '', collapse = ' '),"\n", sep="")
     }
     
+    X_centered <- sweep(X, 2, Xmeans)
+    S <- cov(X_centered, use = "complete.obs")
     
-    # Generate S
-    S <- cov(X-Xmeans, use = "complete.obs")
-    
-    
-    for (k in estimator_names) {
+    for (estimator in estimator_names) {
+      start_time_estimator <- Sys.time()
+      func <- estimators[[estimator]]$func
+      params <- estimators[[estimator]]$params
       
-      start_time_k <- Sys.time()
+      if ("X" %in% names(params)) params$X <- X
+      if ("S" %in% names(params)) params$S <- S
+      if ("Skt" %in% names(params)) params$Skt <- Skt
       
-      func <- estimators[[k]]$func #
-      params <- estimators[[k]]$params
-      
-      # Assign parameters
-      if ("X" %in% names(estimators[[k]]$params)){
-        params$X <- X
-      }
-      if ("S" %in% names(estimators[[k]]$params)){
-        params$S <- S
-      }
-      if ("Skt" %in% names(estimators[[k]]$params)){
-        params$Skt <- Skt
-      }
-      
-      
-      
-      cat("   ", k,": ", sep="")
+      cat("   ", estimator,": ", sep="")
       
       error_check <- try({
         cov <- withTimeout(do.call(func, params), timeout = timeout, onTimeout = "error")
         w <- portfolio_weights(cov)
-        univ_returns[h,k] <- portfolio_returns(Y, w)$sum_returns 
+        univ_returns[period, estimator] <- portfolio_returns(Y, w)$sum_returns
       }, silent = TRUE)
-      if(class(error_check)[1] == "try-error"){
-        cat("Skipped ",k, " for investment period ",h," due to error. ", sep="") 
-      }
       
-      end_time_k <- Sys.time()
-      duration_k <- difftime(end_time_k, start_time_k, units = "secs")
-      cat(duration_k, " sec \n", sep="")
+      if (inherits(error_check, "try-error")) {
+        warning(paste("Skipped", estimator, "for period", period, "due to error."))
+      }
+      end_time_estimator <- Sys.time()
+      duration_estimator <- difftime(end_time_estimator, start_time_estimator, units = "secs")
+      cat(duration_estimator, " sec \n", sep="")
     }
+    
     
     flush.console()
     
-    end_time_h <- Sys.time()
-    duration_h <- difftime(end_time_h, start_time_h, units = "secs")
-    cat("   Overall duration for investment period ",h,": ", duration_h, " sec \n", sep="")
+    end_time_period <- Sys.time()
+    duration_period <- difftime(end_time_period, start_time_period, units = "secs")
+    cat("   Overall duration for investment period ",period,": ", duration_period, " sec \n", sep="")
     
-  }
+  }  
   
   results <- list()
   results$"sd" <- 100*sqrt(12)*sapply(univ_returns, sd, na.rm = TRUE)
