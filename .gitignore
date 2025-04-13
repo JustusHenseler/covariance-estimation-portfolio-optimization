@@ -49,7 +49,6 @@ po/*~
 rsconnect/
 
 # Folders
-/data/retrievedDataNASDAQ83.RData
-/data/YahooData.RData
+/data/
 /results/
 /matlab/

@@ -55,7 +55,7 @@ library(R.matlab)
 
 MTP2 <- function(S){
   
-  original_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
+  original_dir <- getwd()
   matlab_dir <- paste(original_dir,"/matlab", sep="")
   
   uuid <- UUIDgenerate()
@@ -78,7 +78,7 @@ MTP2 <- function(S){
 
 MTP2KT <- function(Skt){
   
-  original_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
+  original_dir <- getwd()
   matlab_dir <- paste(original_dir,"/matlab", sep="")
   
   uuid <- UUIDgenerate()
